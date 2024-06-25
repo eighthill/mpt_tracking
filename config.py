@@ -1,5 +1,6 @@
 import dummy
 from NoFilter import NoFilter
+import statObj
 
 # TODO: Add your filters here
 filters = {
@@ -12,7 +13,7 @@ filters = {
         "randomnoise": dummy.DummyFilter(2),
         "angular": dummy.DummyFilter(2),
     },
-     "No Filter":{
+     "NoFilter":{
         "color": [0.5, 0.2, 1.0],
         "constantposition": NoFilter(),
          "constantvelocity":  NoFilter(),
@@ -20,5 +21,9 @@ filters = {
          "constantturn":  NoFilter(),
          "randomnoise":  NoFilter(),
          "angular":  NoFilter(),
+     },
+     "StaticObject":{
+        "color": [0.8, 0.2, 0.1],
+        "constantposition": statObj.staticFilter(2)
      }
 }
