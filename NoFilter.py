@@ -4,10 +4,12 @@ Created on Fri Jun 21 19:48:54 2024
 
 @author: marko
 """
+import numpy as np
 
 class NoFilter():
   def __init__(self):
     pass
+    
 
   def reset(self, measurement):    
     return measurement[:2]
