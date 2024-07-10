@@ -91,8 +91,65 @@ class ConstantVelocity2:
         return self.state_estimate[:2]#.reshape(1, 2)
     
 class ConstantVelocity():
+    def __init__(self, process_noise=1e-6, measurement_noise=0.69):
+        """Initialize Constant Velocity Kalman Filter with default values."""
+        self.dt = 1  # Default time step
+        self.state = np.zeros(4)  # Initial state vector [x, y, vx, vy]
+        self.uncertainty = np.eye(4)  # Initial uncertainty covariance matrix
+        self.process_noise = process_noise  # Process noise
+        self.measurement_noise = measurement_noise  # Measurement noise
+
+    def reset(self, measurement):
+        """Reset the filter with an initial measurement."""
+        self.state[:2] = np.array(measurement[:2])  # Initialize position part of the state
+        self.state[2:] = 0  # Initial velocity is unknown, set to zero
+        self.uncertainty = np.eye(4) / 2  # Reset uncertainty
+        return self.state[:2]  # Return only the position part
+
+    def predict(self, dt):
+        """Predict the next state and uncertainty."""
+        self.dt = dt
+        F = np.array([[1, 0, dt, 0], [0, 1, 0, dt], [0, 0, 1, 0], [0, 0, 0, 1]])
+        Q = np.eye(4) * self.process_noise  # Process noise covariance matrix
+
+        self.state = F @ self.state  # State prediction
+        self.uncertainty = F @ self.uncertainty @ F.T + Q  # Uncertainty prediction
+
+    def calculate_kalman_gain(self, measurement_uncertainty):
+        """Calculate the Kalman Gain."""
+        H = np.eye(2, 4)  # Measurement matrix (mapping state to measurement space)
+        return (
+            self.uncertainty
+            @ H.T
+            @ np.linalg.inv(H @ self.uncertainty @ H.T + measurement_uncertainty)
+        )
+
+    def update_state(self, measurement, kalman_gain):
+        """Update the state estimate."""
+        H = np.eye(2, 4)  # Measurement matrix
+        self.state = self.state + kalman_gain @ (measurement - H @ self.state)
+
+    def update_uncertainty(self, kalman_gain):
+        """Update the uncertainty covariance."""
+        H = np.eye(2, 4)  # Measurement matrix
+        self.uncertainty = (np.eye(4) - kalman_gain @ H) @ self.uncertainty
+
+    def update(self, dt, measurement):
+        """Perform a full update cycle: predict and update."""
+        self.predict(dt)
+
+        measurement = np.array(measurement[:2])
+        measurement_uncertainty = np.eye(2) * self.measurement_noise**2
+
+        kalman_gain = self.calculate_kalman_gain(measurement_uncertainty)
+
+        self.update_state(measurement, kalman_gain)
+
+        self.update_uncertainty(kalman_gain)
+
+        return self.state[:2]
     
-    def __init__(self, guess_H = 1, guess_P = 1, Q_noise = 0.0005):
+    """def __init__(self, guess_H = 1, guess_P = 1, Q_noise = 0.0005):
         #self.state_dim = state_dim
         self.dt = 1
         self.state_estimate = np.zeros(4)#np.zeros(2)
@@ -102,7 +159,8 @@ class ConstantVelocity():
         #self.P = np.eye(2) * guess_P        
         #self.state_transition = np.eye(4)
         self.H = np.eye(2,4)#np.array([1,0])#np.eye(2)# * guess_H #measurement_matrix
-        self.Q = np.eye(2) * self.Q_noise
+        self.Q = np.eye(4) * self.Q_noise + self.dt
+        self.P = np.eye(4)
         #self.I = np.array([[1, 0],
                           #[0,1]]) #einheitsmatrix
         
@@ -120,10 +178,11 @@ class ConstantVelocity():
             
 
     def reset(self, measurement):
-        self.state_estimate = np.array([measurement[:2]])
+        self.state_estimate[:2] = np.array(measurement[:2])
+        print(self.state_estimate.shape)
         #self.state_estimate[:2] = np.mean(measurement[:10].reshape(-1, 2), axis=0) #positions
         self.state_estimate[2:] = 0  # velocity: unknown
-        self.P = np.eye(4)/2 # uncartainty covariance
+        #self.P = np.eye(4)/2 # uncartainty covariance
         #self.H = np.eye(2)
         return self.state_estimate[:2]
     
@@ -133,26 +192,27 @@ class ConstantVelocity():
         #print(f" \n H :{self.H}\nP.{self.P}\n")
         self.dt = dt
         
-        """F = np.array([[1, dt],
-                      [0, 1]]) #Prozessmodell"""
-        F = np.array([[1, 0, dt, 0],
-                      [0, 1, 0, dt],
-                      [0, 0, 1, 0],
-                      [0, 0, 0, 1]])
+        F = np.array([[1, dt],
+                      [0, 1]]) #Prozessmodell
+        ##F = np.array([[1, 0, dt, 0],
+         #             [0, 1, 0, dt],
+          #            [0, 0, 1, 0],
+             #         [0, 0, 0, 1]])
         
-        """G = np.array([[0.5*dt**2, 0],
-                       [0, 0.5*dt**2], 
-                       [dt, 0],
-                       [0, dt]])"""
-        Q = np.eye(4) * self.Q_noise * dt#np.ndarray.var(G) * self.Q_noise
-        
+        #G = np.array([[0.5*dt**2, 0],
+         #              [0, 0.5*dt**2], 
+          #             [dt, 0],
+           #            [0, dt]])
+        Q = self.Q#np.ndarray.var(G) * self.Q_noise
+        print(F.shape, self.state_estimate.shape)
+        print(self.state_estimate)
         self.state_estimate = F @ self.state_estimate
         
         #Q = self.Q * self.Q_noise
         self.P = F @ self.P @ F.T + Q 
         
         #getting values
-        measured_values = np.array([measurement[:2]])##.reshape(-1, 2)
+        measured_values = np.array(measurement[:2])##.reshape(-1, 2)
         R = np.eye(2) * 0.5**2#setting constant velocity#.reshape(-1, 2) #measurement_noise_covariance/measurement_noise
         #print(measured_values)
         
@@ -174,5 +234,6 @@ class ConstantVelocity():
         self.P = np.dot((I - np.dot(kalman_gain, self.H)), self.P)
         
         
-        return self.state_estimate[:2]#.reshape(1, 2)
+        return self.state_estimate[:2]#.reshape(1, 2)"""
+    
     
