@@ -167,20 +167,12 @@ class ConstantVelocity():
 
         
         
-        """in den folien:
-             state = F@state + Ga
-             mit:
-                 Ga = np.array([[0.5*dt**2, 0],
-                                [0, 0.5*dt**2], 
-                                [dt, 0],
-                                [0, dt]])
-                 Q = np.ndarray.var(Ga)"""
+        
             
 
     def reset(self, measurement):
-        self.state_estimate[:2] = np.array(measurement[:2])
-        print(self.state_estimate.shape)
-        #self.state_estimate[:2] = np.mean(measurement[:10].reshape(-1, 2), axis=0) #positions
+        #self.state_estimate = np.array([measurement[:2]])
+        self.state_estimate[:2] = np.mean(measurement[:10].reshape(-1, 2), axis=0) #positions
         self.state_estimate[2:] = 0  # velocity: unknown
         #self.P = np.eye(4)/2 # uncartainty covariance
         #self.H = np.eye(2)
@@ -212,7 +204,7 @@ class ConstantVelocity():
         self.P = F @ self.P @ F.T + Q 
         
         #getting values
-        measured_values = np.array(measurement[:2])##.reshape(-1, 2)
+        measured_values = np.mean(measurement[:10].reshape(-1, 2), axis=0)
         R = np.eye(2) * 0.5**2#setting constant velocity#.reshape(-1, 2) #measurement_noise_covariance/measurement_noise
         #print(measured_values)
         
@@ -228,8 +220,7 @@ class ConstantVelocity():
         #Update
         self.state_estimate = self.state_estimate + kalman_gain @ measurement_residual
         
-        I = np.array([[1, 0],
-                      [0, 1]])
+        I = np.eye(4)
         
         self.P = np.dot((I - np.dot(kalman_gain, self.H)), self.P)
         
