@@ -278,7 +278,6 @@ class ConstantVelocity2:
         )
         self.I = np.eye(4)  # einheitsmatrix
 
-
     def reset(self, measurement):
         self.state_estimate = np.array(
             [
@@ -333,8 +332,7 @@ class ConstantVelocity2:
         kalman_gain = np.dot(
             np.dot(self.P, self.H.T), np.linalg.inv(residual_covariance)
         )
-
-       
+        
         # Update
         self.state_estimate = self.state_estimate + kalman_gain @ measurement_residual
         self.P = np.dot((self.I - np.dot(kalman_gain, self.H)), self.P)
