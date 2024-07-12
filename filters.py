@@ -263,8 +263,7 @@ class ConstantVelocity2:
         self.Q_noise = Q_noise
         self.P = np.eye(4) * guess_P
         self.H = np.array(
-            [   [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
+            [
                 [1.0, 0.0, 0.0, 0.0],
                 [0.0, 1.0, 0.0, 0.0],
                 [1.0, 0.0, 0.0, 0.0],
@@ -273,9 +272,11 @@ class ConstantVelocity2:
                 [0.0, 1.0, 0.0, 0.0],
                 [1.0, 0.0, 0.0, 0.0],
                 [0.0, 1.0, 0.0, 0.0],
-            ]) #np.eye(2, 4) * guess_H  # measurement_matrix
-        self.Q = np.eye(4) * self.Q_noise
-        self.I = np.eye(4) # einheitsmatrix
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+            ]
+        )
+        self.I = np.eye(4)  # einheitsmatrix
 
     def reset(self, measurement):
         self.state_estimate = np.array(
@@ -299,7 +300,7 @@ class ConstantVelocity2:
                 0.0,
                 0.0,
             ]
-        )  # positions
+        )# positions
         self.P = np.eye(4)  # uncertainty covariance
         return self.state_estimate[:2]
 
@@ -320,10 +321,8 @@ class ConstantVelocity2:
         self.P = F @ self.P @ F.T + Q  # has shape (4,4)
 
         # getting values
-        measurement_residual = measurement[:10] - self.H @ self.state_estimate
-        R = np.diag(measurement[10:])# measurement_noise_covariance/measurement_noise
-
-        
+        measurement_residual = measurement[:10] - self.H @ self.state_estimate  # innovation
+        R = np.diag(measurement[10:])
 
         # -------calculating----------#
 
